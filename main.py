@@ -26,11 +26,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 # Config — values assigned to you
 # ---------------------------------------------------------------------------
 
-ALLOWED_ORIGINS = {
-    "https://app-nl9bvo.example.com",
-    # TODO: add the exam/grader page's exact origin here, e.g.:
-    # "https://exam.example-platform.com",
-}
+ALLOWED_ORIGINS = {"*"}
 
 RATE_LIMIT = 13          # B: max requests
 WINDOW_SECONDS = 10      # per this many seconds
