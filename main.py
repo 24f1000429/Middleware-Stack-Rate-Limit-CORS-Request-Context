@@ -40,50 +40,41 @@ app.add_middleware(
 client_requests = defaultdict(deque)
 
 
-# =========================
-# Request Context Middleware
-# =========================
-class RequestContextMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next):
-        request_id = request.headers.get("X-Request-ID")
+from uuid import uuid4
 
-        if not request_id:
-            request_id = str(uuid4())
+@app.middleware("http")
+async def request_context_middleware(request: Request, call_next):
+    request_id = request.headers.get("X-Request-ID") or str(uuid4())
 
-        request.state.request_id = request_id
+    request.state.request_id = request_id
 
-        response = await call_next(request)
-        response.headers["X-Request-ID"] = request_id
-        return response
+    response = await call_next(request)
 
+    # Echo back the same request ID
+    response.headers["X-Request-ID"] = request_id
 
-# =========================
-# Rate Limiter Middleware
-# =========================
-class RateLimitMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next):
-        client_id = request.headers.get("X-Client-Id", "anonymous")
-
-        now = time.time()
-        bucket = client_requests[client_id]
-
-        while bucket and bucket[0] <= now - WINDOW:
-            bucket.popleft()
-
-        if len(bucket) >= RATE_LIMIT:
-            return JSONResponse(
-                status_code=429,
-                content={"detail": "Rate limit exceeded"},
-            )
-
-        bucket.append(now)
-        return await call_next(request)
+    return response
 
 
-# Order:
-# Request Context -> Rate Limit -> Endpoint
-app.add_middleware(RateLimitMiddleware)
-app.add_middleware(RequestContextMiddleware)
+@app.middleware("http")
+async def rate_limit_middleware(request: Request, call_next):
+    client_id = request.headers.get("X-Client-Id", "anonymous")
+
+    now = time.time()
+    bucket = client_requests[client_id]
+
+    while bucket and bucket[0] <= now - WINDOW:
+        bucket.popleft()
+
+    if len(bucket) >= RATE_LIMIT:
+        return JSONResponse(
+            status_code=429,
+            content={"detail": "Rate limit exceeded"},
+        )
+
+    bucket.append(now)
+
+    return await call_next(request)
 
 
 # =========================
