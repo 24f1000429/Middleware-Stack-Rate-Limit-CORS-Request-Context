@@ -17,11 +17,7 @@ ALLOWED_ORIGIN = "https://app-nl9bvo.example.com"
 
 # Also allow the exam frontend origin during grading.
 # (Keep this list if your grader runs from localhost.)
-ALLOWED_ORIGINS = [
-    ALLOWED_ORIGIN,
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-]
+ALLOWED_ORIGINS = ["*"]
 
 RATE_LIMIT = 13
 WINDOW = 10  # seconds
@@ -35,6 +31,7 @@ app.add_middleware(
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["Retry-After"],
 )
 
 # =========================
